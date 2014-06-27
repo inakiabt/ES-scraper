@@ -309,6 +309,16 @@ def getMameTitles(command):
             file = line[0:10].strip()
             title = line[10:].strip('"')
             titlesDict[file] = title
+    if "fba2x" in command:
+        subprocess.call([command, '--gamelist'])
+        file = os.path.join(os.path.dirname(command), 'gamelist.txt')
+        with open(file) as f:
+            output = f.readlines()
+        for line in output:
+            entries = line.split('|')
+            if len(entries) == 10:
+                titlesDict[entries[1].strip()] = entries[3].strip()
+
     return titlesDict
 
 def scanFiles(SystemInfo):
@@ -324,7 +334,7 @@ def scanFiles(SystemInfo):
     platformID=SystemInfo[4]
 
     titlesDict = {}
-    if platformID == 23:
+    if platformID == 23 or platformID == 24:
         titlesDict = getMameTitles(command)
 
     global gamelistExists
