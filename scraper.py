@@ -139,7 +139,9 @@ def getGameInfo(file,platformID,titlesDict):
             except:
                 return None
         else:
-            values={'name':title,'platform':platform}
+            searchTitle = title.split('(',1)
+            searchTitle = searchTitle[0].strip()
+            values={'name':searchTitle,'platform':platform}
 
     try:
         req = urllib2.Request(URL,urllib.urlencode(values), headers={'User-Agent' : "RetroPie Scraper Browser"})
