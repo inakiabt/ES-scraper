@@ -423,7 +423,7 @@ def scanFiles(SystemInfo):
         else:
             continue
         break
-            
+
     if gamelist.find("game") is None:
         print "No new games added."
     else:
