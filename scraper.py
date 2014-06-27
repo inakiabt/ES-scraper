@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os, imghdr, urllib, urllib2, sys, Image, argparse, zlib, unicodedata, re
+import subprocess
 import difflib
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element, SubElement
@@ -37,14 +38,19 @@ def readConfig(file):
                 name=line.split('=')[1]
             if "PATH=" in line:
                 path=line.split('=')[1]
+            if "COMMAND=" in line:
+                command=line.split('=')[1]
+                command=re.sub(r'.*?runcommand.sh\s*[0-9]*\s*', r'', command)
+                command=re.sub(r'\s*%.*?%\s*', r'', command)
+                command=command.replace('"','')
             elif "EXTENSION" in line:
                 ext=line.split('=')[1]
             elif "PLATFORMID" in line:
-                pid=line.split('=')[1]
+                pid=int(line.split('=')[1])
                 if not pid:
                     continue
                 else:
-                    system=(name,path,ext,pid)
+                    system=(name,path,command,ext,pid)
                     systems.append(system)
     config.close()
     return systems
@@ -98,8 +104,9 @@ def getFiles(base):
             dict.add(filepath)
     return dict
 
-def getGameInfo(file,platformID):
+def getGameInfo(file,platformID,titlesDict):
     title=re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
+    keeptitle = False
     if args.crc:
         crcvalue=crc(file)
         if args.v:
@@ -115,7 +122,10 @@ def getGameInfo(file,platformID):
         if SCUMMVM:
             title = getScummvmTitle(title)
             args.fix = True #Scummvm doesn't have a proper platformID so we search all
-        if platform == "Arcade" or platform == "NeoGeo": title = getRealArcadeTitle(title)
+        if platformID == 23 or platformID == 24:
+            if title in titlesDict:
+                title = titlesDict[title]
+                keeptitle = True
 
         if args.fix:
             try:
@@ -129,7 +139,9 @@ def getGameInfo(file,platformID):
             except:
                 return None
         else:
-            values={'name':title,'platform':platform}
+            searchTitle = title.split('(',1)
+            searchTitle = searchTitle[0].strip()
+            values={'name':searchTitle,'platform':platform}
 
     try:
         req = urllib2.Request(URL,urllib.urlencode(values), headers={'User-Agent' : "RetroPie Scraper Browser"})
@@ -145,9 +157,18 @@ def getGameInfo(file,platformID):
             if result is not None and result.find("title").text is not None:
                 return result
         elif data.find("Game") is not None:
-            return data.findall("Game")[chooseResult(data)] if args.m else data.findall("Game")[autoChooseBestResult(data,title)]
+            if args.m:
+                game = data.findall("Game")[chooseResult(data)]
+            else:
+                game = data.findall("Game")[autoChooseBestResult(data,title)]
+            if keeptitle:
+                game.find("GameTitle").text = title
+            return game
         else:
-            return None
+            game = ET.Element('Game')
+            gameTitle = ET.SubElement(game, 'GameTitle')
+            gameTitle.text = title
+            return game
     except Exception, err:
         print "Skipping game..(%s)" % str(err)
         return None
@@ -177,18 +198,6 @@ def getScummvmTitle(title):
        return m.groups()[0]
     else:
        print "No title found for %s on scummvm.org" % title
-       return title
-
-def getRealArcadeTitle(title):
-    print "Fetching real title for %s from mamedb.com" % title
-    URL  = "http://www.mamedb.com/game/%s" % title
-    data = "".join(urllib2.urlopen(URL).readlines())
-    m    = re.search('<b>Name:.*</b>(.+) .*<br/><b>Year', data)
-    if m:
-       print "Found real title %s for %s on mamedb.com" % (m.group(1), title)
-       return m.group(1)
-    else:
-       print "No title found for %s on mamedb.com" % title
        return title
 
 def getDescription(nodes):
@@ -296,6 +305,27 @@ def autoChooseBestResult(nodes,t):
     else:
         return 0
 
+def getMameTitles(command):
+    titlesDict = {}
+    if "mame4all" in command:
+        output = subprocess.check_output([command, '-listfull'])
+        r = re.compile('\s+')
+        for line in output.splitlines():
+            file = line[0:10].strip()
+            title = line[10:].strip('"')
+            titlesDict[file] = title
+    if "fba2x" in command:
+        subprocess.call([command, '--gamelist'])
+        file = os.path.join(os.path.dirname(command), 'gamelist.txt')
+        with open(file) as f:
+            output = f.readlines()
+        for line in output:
+            entries = line.split('|')
+            if len(entries) == 10:
+                titlesDict[entries[1].strip()] = entries[3].strip()
+
+    return titlesDict
+
 def scanFiles(SystemInfo):
     status = "ok"
 
@@ -304,8 +334,13 @@ def scanFiles(SystemInfo):
         global SCUMMVM
         SCUMMVM = True
     folderRoms=SystemInfo[1]
-    extension=SystemInfo[2]
-    platformID=SystemInfo[3]
+    command=SystemInfo[2]
+    extension=SystemInfo[3]
+    platformID=SystemInfo[4]
+
+    titlesDict = {}
+    if platformID == 23 or platformID == 24:
+        titlesDict = getMameTitles(command)
 
     global gamelistExists
     global existinglist
@@ -350,7 +385,7 @@ def scanFiles(SystemInfo):
 
                     print "Trying to identify %s.." % files
 
-                    data=getGameInfo(filepath, platformID)
+                    data=getGameInfo(filepath, platformID, titlesDict)
 
                     if data is None:
                         continue
