@@ -163,7 +163,10 @@ def getGameInfo(file,platformID,titlesDict):
                 game.find("GameTitle").text = title
             return game
         else:
-            return None
+            game = ET.Element('Game')
+            gameTitle = ET.SubElement(game, 'GameTitle')
+            gameTitle.text = title
+            return game
     except Exception, err:
         print "Skipping game..(%s)" % str(err)
         return None
