@@ -312,6 +312,8 @@ def getMameTitles(command):
     return titlesDict
 
 def scanFiles(SystemInfo):
+    status = "ok"
+
     name=SystemInfo[0]
     if name == "scummvm":
         global SCUMMVM
@@ -434,14 +436,21 @@ def scanFiles(SystemInfo):
                             newgenre.text=genre.strip()
                 except KeyboardInterrupt:
                     print "Ctrl+C detected. Closing work now..."
+                    status = "break"
+                    break
                 except Exception as e:
                     print "Exception caught! %s" % e
+        else:
+            continue
+        break
 
     if gamelist.find("game") is None:
         print "No new games added."
     else:
         print "{} games added.".format(len(gamelist))
         exportList(gamelist)
+
+    return status
 
 try:
     if os.getuid()==0:
@@ -474,6 +483,8 @@ if args.p:
         sys.exit()
 else:
     for i,v in enumerate(ES_systems):
-        scanFiles(ES_systems[i])
+        result = scanFiles(ES_systems[i])
+        if result == "break":
+            break
 
 print "All done!"
