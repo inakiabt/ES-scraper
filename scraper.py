@@ -27,26 +27,15 @@ def fixExtension(file):
     return newfile
 
 def readConfig(file):
-    lines=config.read().splitlines()
     systems=[]
-    for line in lines:
-        if not line.strip() or line[0]=='#':
-            continue
-        else:
-            if "NAME=" in line:
-                name=line.split('=')[1]
-            if "PATH=" in line:
-                path=line.split('=')[1]
-            elif "EXTENSION" in line:
-                ext=line.split('=')[1]
-            elif "PLATFORMID" in line:
-                pid=line.split('=')[1]
-                if not pid:
-                    continue
-                else:
-                    system=(name,path,ext,pid)
-                    systems.append(system)
-    config.close()
+
+    name = os.environ['ES_NAME']
+    path = os.environ['ES_PATH']
+    ext = os.environ['ES_EXTENSION']
+    pid = os.environ['ES_PLATFORM']
+    system=(name,path,ext,pid)
+    systems.append(system)
+
     return systems
 
 def crc(fileName):
