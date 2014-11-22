@@ -21,8 +21,12 @@ args = parser.parse_args()
 def normalize(s):
    return ''.join((c for c in unicodedata.normalize('NFKD', unicode(s)) if unicodedata.category(c) != 'Mn'))
 
-def fixExtension(file):    
+def getFixedExtension(file):    
     newfile="%s.%s" % (os.path.splitext(file)[0],imghdr.what(file))
+    return newfile
+
+def fixExtension(file):    
+    newfile=getFixedExtension(file)
     os.rename(file, newfile)
     return newfile
 
@@ -376,17 +380,23 @@ def scanFiles(SystemInfo):
                         else:
                             imgpath=os.path.abspath(os.path.join(root, filename+os.path.splitext(str_img)[1]))
     
-                        print "Downloading boxart.."
-    
-                        downloadBoxart(str_img,imgpath)
-                        imgpath=fixExtension(imgpath)
-                        image.text=imgpath
-    
-                        if args.w:
-                            try:
-                                resizeImage(Image.open(imgpath),imgpath)
-                            except:
-                                print "Image resize error"
+                        imgpathfile=getFixedExtension(imgpath)
+                        if os.path.exists(imgpathfile):
+                            print "Skipping download boxart (already exists)..."
+                            imgpath=imgpathfile
+                            image.text=imgpathfile
+                        else:
+                            print "Downloading boxart.."
+        
+                            downloadBoxart(str_img,imgpath)
+                            imgpath=fixExtension(imgpath)
+                            image.text=imgpath
+        
+                            if args.w:
+                                try:
+                                    resizeImage(Image.open(imgpath),imgpath)
+                                except:
+                                    print "Image resize error"
     
                     if str_rd is not None:
                         releasedate.text=str_rd
