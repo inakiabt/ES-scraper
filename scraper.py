@@ -382,7 +382,7 @@ def scanFiles(SystemInfo):
     
                         imgpathfile=getFixedExtension(imgpath)
                         if args.v:
-                            print "Check if boxart for %s already exists: %s" % (path, imgpathfile)
+                            print "Check if boxart for %s already exists: %s" % (str_img, imgpathfile)
                         if os.path.isfile(imgpathfile):
                             print "Skipping download boxart (already exists)..."
                             imgpath=imgpathfile
