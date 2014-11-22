@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-import os, imghdr, urllib, urllib2, sys, Image, argparse, zlib, unicodedata, re
+import os, imghdr, urllib, urllib2, sys, argparse, zlib, unicodedata, re, glob
 import difflib
+from PIL import Image
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element, SubElement
 
@@ -32,7 +33,7 @@ def fixExtension(file):
     os.rename(file, newfile)
     return newfile
 
-def readConfig(file):
+def readConfig():
     systems=[]
 
     name = os.environ['ES_NAME']
@@ -291,6 +292,14 @@ def autoChooseBestResult(nodes,t):
     else:
         return 0
 
+def getImageIfExist(name, allfiles):
+    filelist = [filename for filename in allfiles if filename.startswith(name) and imghdr.what(filename) is not None]
+
+    if len(filelist) > 0:
+        return filelist[0]
+
+    return None
+
 def scanFiles(SystemInfo):
     name=SystemInfo[0]
     if name == "scummvm":
@@ -382,11 +391,13 @@ def scanFiles(SystemInfo):
                         else:
                             imgpath=os.path.abspath(os.path.join(root, filename+os.path.splitext(str_img)[1]))
     
-                        imgpathfile=getFixedExtension(imgpath)
                         if args.v:
-                            print "Check if boxart for %s already exists: %s [%s]" % (str_img, imgpath, imgpathfile)
-                        if os.path.isfile(imgpathfile):
+                            print "Check if %s has an image file staring with: %s" % (str_title, filename)
+
+                        imgpathfile = getImageIfExist(filename,allfiles)
+                        if imgpathfile is not None:
                             print "Skipping download boxart (already exists)..."
+                            imgpathfile=os.path.abspath(os.path.join(root, imgpathfile))
                             imgpath=imgpathfile
                             image.text=imgpathfile
                         else:
@@ -428,14 +439,14 @@ def scanFiles(SystemInfo):
         print "{} games added.".format(len(gamelist))
         exportList(gamelist)
 
-try:
-    if os.getuid()==0:
-        os.environ['HOME']="/home/"+os.getenv("SUDO_USER")
-    config=open(os.environ['HOME']+"/.emulationstation/es_systems.cfg")
-except IOError as e:
-    sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
+# try:
+#     if os.getuid()==0:
+#         os.environ['HOME']="/home/"+os.getenv("SUDO_USER")
+#     config=open(os.environ['HOME']+"/.emulationstation/es_systems.cfg")
+# except IOError as e:
+#     sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
 
-ES_systems=readConfig(config)
+ES_systems=readConfig()
 print parser.description
 
 if args.w:
