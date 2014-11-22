@@ -394,7 +394,11 @@ def scanFiles(SystemInfo):
                         if args.v:
                             print "Check if %s has an image file staring with: %s" % (str_title, filename)
 
-                        imgpathfile = getImageIfExist(filename,allfiles)
+                        if args.f:
+                            imgpathfile = None
+                        else:
+                            imgpathfile = getImageIfExist(filename,allfiles)
+
                         if imgpathfile is not None:
                             print "Skipping download boxart (already exists)..."
                             imgpathfile=os.path.abspath(os.path.join(root, imgpathfile))
