@@ -21,9 +21,11 @@ args = parser.parse_args()
 def normalize(s):
    return ''.join((c for c in unicodedata.normalize('NFKD', unicode(s)) if unicodedata.category(c) != 'Mn'))
 
-def getFixedExtension(file):    
-    newfile="%s.%s" % (os.path.splitext(file)[0],imghdr.what(file))
-    return newfile
+def getFixedExtension(file):
+    if os.path.isfile(file):
+        newfile="%s.%s" % (os.path.splitext(file)[0],imghdr.what(file))
+        return newfile
+    return 'NOT_EXISTS'
 
 def fixExtension(file):    
     newfile=getFixedExtension(file)
